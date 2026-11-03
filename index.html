@@ -111,6 +111,33 @@
     -webkit-appearance:none;appearance:none;
   }
   .recipe-select option{color:#000;}
+  .recipe-tile{cursor:pointer;}
+
+  .recipe-modal{
+    position:fixed;inset:0;background:rgba(10,10,30,0.55);backdrop-filter:blur(6px);
+    display:none;align-items:center;justify-content:center;z-index:900;padding:clamp(16px,3vw,40px);
+  }
+  .recipe-modal.show{display:flex;}
+  .recipe-modal-content{
+    position:relative;width:100%;max-width:900px;max-height:90vh;overflow-y:auto;cursor:auto;
+    background:linear-gradient(160deg, rgba(255,255,255,0.26), rgba(255,255,255,0.08));
+    backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);
+    border:1px solid rgba(255,255,255,0.4);border-radius:32px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.4);
+    padding:clamp(24px,4vw,48px);display:flex;flex-direction:column;gap:.7em;
+  }
+  body[data-theme="night"] .recipe-modal-content{
+    background:linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04));
+    border-color:rgba(255,255,255,0.22);
+  }
+  .recipe-modal-close{
+    position:absolute;top:16px;right:16px;border-radius:50%;width:2.2em;height:2.2em;
+    padding:0;font-size:1.2rem;line-height:1;
+  }
+  .recipe-modal-content h2{font-size:clamp(1.6rem,3vw,2.4rem);margin:0 .2em 0 0;}
+  .recipe-modal-list{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:.55em;font-size:clamp(1.2rem,2.4vw,1.8rem);line-height:1.4;}
+  .recipe-modal-list li{color:rgba(255,255,255,0.6);}
+  .recipe-modal-list li.active{color:#fff;font-weight:700;}
 
   .alarm-overlay{
     position:fixed;inset:0;background:rgba(255,80,80,0.85);display:none;
@@ -178,6 +205,19 @@
   <div style="font-size:clamp(2.5rem,6vw,4.5rem);">⏰</div>
   <div style="font-size:clamp(1.6rem,3vw,2.5rem);font-weight:700;">Tempo esgotado!</div>
   <button id="alarm-dismiss">OK</button>
+</div>
+
+<div class="recipe-modal" id="recipe-modal">
+  <div class="recipe-modal-content">
+    <button class="recipe-modal-close" id="recipe-modal-close">✕</button>
+    <h2 id="recipe-modal-title">Receita</h2>
+    <ol class="recipe-modal-list" id="recipe-modal-list"></ol>
+    <div class="recipe-nav">
+      <button id="recipe-modal-prev">◀ Anterior</button>
+      <span class="recipe-progress" id="recipe-modal-progress">Passo 1 de 1</span>
+      <button id="recipe-modal-next">Próximo ▶</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -351,6 +391,7 @@
     document.getElementById('recipe-progress').textContent = `Passo ${passoAtual + 1} de ${r.passos.length}`;
     document.getElementById('recipe-prev').disabled = passoAtual === 0;
     document.getElementById('recipe-next').disabled = passoAtual === r.passos.length - 1;
+    renderModalReceita();
   }
   document.getElementById('recipe-select').addEventListener('change', (e) => {
     receitaAtual = Number(e.target.value);
@@ -365,6 +406,34 @@
   });
   popularReceitas();
   renderReceita();
+
+  // ---------- Modal da receita (toque no card pra ampliar) ----------
+  function renderModalReceita(){
+    const r = receitas[receitaAtual];
+    document.getElementById('recipe-modal-title').textContent = r.titulo;
+    document.getElementById('recipe-modal-list').innerHTML = r.passos.map((p, i) =>
+      `<li class="${i === passoAtual ? 'active' : ''}">${p}</li>`
+    ).join('');
+    document.getElementById('recipe-modal-progress').textContent = `Passo ${passoAtual + 1} de ${r.passos.length}`;
+    document.getElementById('recipe-modal-prev').disabled = passoAtual === 0;
+    document.getElementById('recipe-modal-next').disabled = passoAtual === r.passos.length - 1;
+  }
+  document.querySelector('.recipe-tile').addEventListener('click', (e) => {
+    if(e.target.closest('select, button')) return;
+    document.getElementById('recipe-modal').classList.add('show');
+  });
+  document.getElementById('recipe-modal-close').addEventListener('click', () => {
+    document.getElementById('recipe-modal').classList.remove('show');
+  });
+  document.getElementById('recipe-modal').addEventListener('click', (e) => {
+    if(e.target.id === 'recipe-modal') e.currentTarget.classList.remove('show');
+  });
+  document.getElementById('recipe-modal-prev').addEventListener('click', () => {
+    if(passoAtual > 0){ passoAtual--; renderReceita(); }
+  });
+  document.getElementById('recipe-modal-next').addEventListener('click', () => {
+    if(passoAtual < receitas[receitaAtual].passos.length - 1){ passoAtual++; renderReceita(); }
+  });
 
   // ---------- Tela cheia ----------
   function entrarTelaCheia(){
